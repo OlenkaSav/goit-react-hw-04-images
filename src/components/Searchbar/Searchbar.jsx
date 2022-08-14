@@ -1,59 +1,54 @@
-import { Component } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
 import { BsSearch } from 'react-icons/bs';
 import PropTypes from 'prop-types';
 // import { toast } from 'react-toastify';
 // import icon from '../../icon/search.svg';
 
-class Searchbar extends Component {
-  state = {
-    query: '',
+function Searchbar({ onSubmit }) {
+  const [query, setQuery] = useState('');
+
+  const handleQueryChange = event => {
+    setQuery(event.currentTarget.value.toLowerCase());
   };
 
-  static propTypes = {
-    onSubmit: PropTypes.func.isRequired,
-  };
-
-  handleQueryChange = event => {
-    this.setState({ query: event.currentTarget.value.toLowerCase() });
-  };
-
-  handleSubmit = event => {
+  const handleSubmit = event => {
     event.preventDefault();
     // if (this.state.query.trim() === '') {
     //   toast.warn('Nothing to search');
     //   return;
     // }
 
-    this.props.onSubmit(this.state.query);
-    this.setState({ query: '' });
+    onSubmit(query);
+    setQuery('');
   };
 
-  render() {
-    return (
-      <StylerdSearchbar>
-        <SearchForm onSubmit={this.handleSubmit}>
-          <SearchFormButton type="submit">
-            <BsSearch size={20} />
+  return (
+    <StylerdSearchbar>
+      <SearchForm onSubmit={handleSubmit}>
+        <SearchFormButton type="submit">
+          <BsSearch size={20} />
 
-            {/* <BsSearch size={20} /> */}
-          </SearchFormButton>
+          {/* <BsSearch size={20} /> */}
+        </SearchFormButton>
 
-          <SearchFormInput
-            onChange={this.handleQueryChange}
-            value={this.state.query}
-            className="input"
-            type="text"
-            autoComplete="off"
-            autoFocus
-            placeholder="Search images and photos"
-          />
-        </SearchForm>
-      </StylerdSearchbar>
-    );
-  }
+        <SearchFormInput
+          onChange={handleQueryChange}
+          value={query}
+          className="input"
+          type="text"
+          autoComplete="off"
+          autoFocus
+          placeholder="Search images and photos"
+        />
+      </SearchForm>
+    </StylerdSearchbar>
+  );
 }
 
+Searchbar.propTypes = {
+  onSubmit: PropTypes.func.isRequired,
+};
 // --------Styles-------
 
 const StylerdSearchbar = styled.header`

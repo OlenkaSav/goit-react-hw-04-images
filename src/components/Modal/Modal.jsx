@@ -1,52 +1,43 @@
-import React, { Component } from 'react';
+import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import PropTypes from 'prop-types';
 
 const modalRoot = document.querySelector('#modal-root');
 
-export default class Modal extends Component {
-  componentDidMount() {
+export default function Modal({ onClose, large, tags }) {
+  useEffect(() => {
+    const handleKeyDown = e => {
+      if (e.code === 'Escape') {
+        // console.log('Нажали ESC, нужно закрыть модалку');
+        onClose();
+      }
+    };
     // console.log('Modal componentDidMount');
-    window.addEventListener('keydown', this.handleKeyDown);
-  }
+    window.addEventListener('keydown', handleKeyDown);
 
-  componentWillUnmount() {
-    // console.log('Modal componentWillUnmount');
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
-    window.removeEventListener('keydown', this.handleKeyDown);
-  }
-
-  handleKeyDown = e => {
-    if (e.code === 'Escape') {
-      // console.log('Нажали ESC, нужно закрыть модалку');
-      console.log(this.props);
-      this.props.onClose();
-    }
-  };
-
-  handleBackdropClick = event => {
+  const handleBackdropClick = event => {
     // console.log('Кликнули в бекдроп');
 
     // console.log('currentTarget: ', event.currentTarget);
     // console.log('target: ', event.target);
 
     if (event.currentTarget === event.target) {
-      this.props.onClose();
+      onClose();
     }
   };
 
-  render() {
-    const { large, tags } = this.props;
-    return createPortal(
-      <Overlay onClick={this.handleBackdropClick}>
-        <ModalContent>
-          <img src={large} alt={tags} />
-        </ModalContent>
-      </Overlay>,
-      modalRoot
-    );
-  }
+  return createPortal(
+    <Overlay onClick={handleBackdropClick}>
+      <ModalContent>
+        <img src={large} alt={tags} />
+      </ModalContent>
+    </Overlay>,
+    modalRoot
+  );
 }
 
 Modal.propTypes = {

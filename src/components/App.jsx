@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useEffect, useState } from 'react';
 import Searchbar from './Searchbar';
 import ImageGallery from './ImageGallery';
 import Loader from 'components/Loader';
@@ -16,153 +16,144 @@ const Status = {
   SUCCSESS: 'succsess',
   FAIL: 'fail',
 };
-const INITIAL_STATE = {
-  showBtn: false,
-  queryList: [],
-  page: 1,
-};
+// const INITIAL_STATE = {
+//   showBtn: false,
+//   queryList: [],
+//   page: 1,
+// };
+function App() {
+  const [query, setQuery] = useState('');
+  const [showBtn, setShowBtn] = useState(false);
+  const [queryList, setQueryList] = useState([]);
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState(Status.START);
+  const [loaderActive, setLoaderActive] = useState(false);
+  const [largeImage, setLargeImage] = useState(null);
+  const [tags, setTags] = useState(null);
+  // state = {
+  //   query: '',
+  //   // page: 1,
+  //   // queryList: [],
+  //   status: Status.START,
+  //   loaderActive: false,
+  //   // showBtn: false,
+  //   largeImage: null,
+  //   tags: null,
+  //   ...INITIAL_STATE,
+  // };
 
-class App extends Component {
-  state = {
-    query: '',
-    // page: 1,
-    // queryList: [],
-    status: Status.START,
-    loaderActive: false,
-    // showBtn: false,
-    largeImage: null,
-    tags: null,
-    ...INITIAL_STATE,
-  };
-
-  handleFormSubmit = query => {
+  const handleFormSubmit = query => {
     if (query.trim() === '') {
       toast.warn('Nothing to search');
-      this.setState({
-        // query: '',
-        ...INITIAL_STATE,
-        status: Status.START,
-      });
+      setStatus(status.START);
+      setShowBtn(false);
+      setPage(1);
+      setQueryList([]);
       return;
     }
-    this.setState({
-      query,
-      // status: Status.LOADING,
-      ...INITIAL_STATE,
-    });
+    setQuery(query);
+    setShowBtn(false);
+    setPage(1);
+    setQueryList([]);
   };
-
-  async componentDidUpdate(_, prevState) {
-    const prevQuery = prevState.query;
-    const nextQuery = this.state.query;
-    const prevPage = prevState.page;
-    const nextPage = this.state.page;
-    console.log(prevQuery, nextQuery);
-    if (prevQuery !== nextQuery || prevPage !== nextPage) {
+  useEffect(() => {
+    if (!query) return;
+    // const prevQuery = prevState.query;
+    // const nextQuery = this.state.query;
+    // const prevPage = prevState.page;
+    // const nextPage = this.state.page;
+    // console.log(prevQuery, nextQuery);
+    // if (prevQuery !== nextQuery || prevPage !== nextPage) {
+    const getData = async () => {
       try {
-        this.setState({
-          loaderActive: true,
-        });
-        const searchResult = await fetchImages(nextQuery, nextPage);
+        setLoaderActive(true);
+        const searchResult = await fetchImages(query, page);
         console.log(searchResult);
         if (searchResult.total === 0) {
           toast(`Sorry, there are no images.`);
-          this.setState({
-            status: Status.FAIL,
-            showBtn: false,
-            queryList: [],
-          });
+          setStatus(Status.FAIL);
+          setShowBtn(false);
+          setQueryList([]);
         }
-        if (nextPage === 1) {
-          this.setState({
-            queryList: [...searchResult.hits],
-          });
+        if (page === 1) {
+          setQueryList([...searchResult.hits]);
         } else {
-          this.setState({
-            queryList: [...prevState.queryList, ...searchResult.hits],
+          setQueryList(prevQueryList => {
+            return [...prevQueryList, ...searchResult.hits];
           });
         }
         if (searchResult.hits.length > 0 && searchResult.hits.length < 12) {
           toast.info(`Seams thats all...`);
-          this.setState({
-            showBtn: false,
-            // queryList: [...prevState.queryList, ...searchResult.hits],
-            status: Status.SUCCSESS,
-          });
+          setShowBtn(false);
+          setStatus(Status.SUCCSESS);
         } else if (searchResult.hits.length === 0) {
           console.log('ff');
         } else {
-          this.setState({
-            showBtn: true,
-            // queryList: [...prevState.queryList, ...searchResult.hits],
-            status: Status.SUCCSESS,
-          });
+          setShowBtn(true);
+          setStatus(Status.SUCCSESS);
         }
 
         // console.log(searchResult.hits);
       } catch (error) {
-        this.setState({ status: Status.FAIL });
+        setStatus(Status.FAIL);
       } finally {
-        this.setState({ loaderActive: false });
+        setLoaderActive(false);
       }
-    }
-  }
-  openModal = (largeImageURL, tags) => {
-    this.setState({ largeImage: largeImageURL, tags });
+    };
+    getData();
+  }, [page, query]);
+
+  const openModal = (largeImageURL, tags) => {
+    setLargeImage(largeImageURL);
+    setTags(tags);
   };
 
-  closeModal = () => {
-    this.setState({ largeImage: null, tags: null });
+  const closeModal = () => {
+    setLargeImage(null);
+    setTags(null);
   };
 
-  loadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  const loadMore = () => {
+    setPage(prevPage => {
+      return prevPage + 1;
+    });
 
     // console.log(prevState.page);
   };
 
-  render() {
-    const { queryList, status, showBtn, query, largeImage } = this.state;
-    return (
-      <StyledApp>
-        <Searchbar onSubmit={this.handleFormSubmit} />
-        {status === 'start' && (
-          <StyledNotification>Type something...</StyledNotification>
-        )}
-        {status === 'fail' && (
-          <StyledNotification>There is nothing...</StyledNotification>
-        )}
-        {status === 'succsess' && (
-          <ImageGallery queryList={queryList} openModal={this.openModal} />
-        )}
-        {status === 'loading' && (
-          <StyledNotification>Search {query}</StyledNotification>
-        )}
-        {this.state.loaderActive && <Loader />}
-        {showBtn && <Button loadMore={this.loadMore}>Load more</Button>}
-        {largeImage?.length > 0 && (
-          <Modal
-            onClose={this.closeModal}
-            large={this.state.largeImage}
-            tags={this.state.tags}
-          />
-        )}
-        <ToastContainer
-          position="top-right"
-          autoClose={2000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
-      </StyledApp>
-    );
-  }
+  return (
+    <StyledApp>
+      <Searchbar onSubmit={handleFormSubmit} />
+      {status === 'start' && (
+        <StyledNotification>Type something...</StyledNotification>
+      )}
+      {status === 'fail' && (
+        <StyledNotification>There is nothing...</StyledNotification>
+      )}
+      {status === 'succsess' && (
+        <ImageGallery queryList={queryList} openModal={openModal} />
+      )}
+      {status === 'loading' && (
+        <StyledNotification>Search {query}</StyledNotification>
+      )}
+      {loaderActive && <Loader />}
+      {showBtn && <Button loadMore={loadMore}>Load more</Button>}
+      {largeImage?.length > 0 && (
+        <Modal onClose={closeModal} large={largeImage} tags={tags} />
+      )}
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+    </StyledApp>
+  );
 }
 
 const StyledApp = styled.div`
@@ -178,34 +169,3 @@ const StyledNotification = styled.h2`
 `;
 
 export default App;
-
-// ---------------------------------старая версия
-// class App extends Component {
-//   state = {
-//     query: '',
-//   };
-
-//   handleFormSubmit = query => {
-//     this.setState({ query });
-//   };
-
-//   render() {
-//     const { query } = this.state;
-//     return (
-//       <StyledApp>
-//         <Searchbar onSubmit={this.handleFormSubmit} />
-//         <ImageGallery query={query} />
-//         <ToastContainer position="top-center" theme="colored" />
-//       </StyledApp>
-//     );
-//   }
-// }
-
-// const StyledApp = styled.div`
-//   display: grid;
-//   grid-template-columns: 1fr;
-//   grid-gap: 16px;
-//   padding-bottom: 24px;
-// `;
-
-// export default App;
